@@ -1,0 +1,54 @@
+# Ignore build output
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.log
+
+# Ignore Rider-specific files
+.idea/
+*.iml
+*.iws
+
+# Ignore macOS-specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Ignore log files and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# Ignore user-specific Rider settings
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/modules.xml
+
+# Ignore package manager files
+node_modules/
+packages/
+
+# Ignore dependency lock files
+*.lock
+
+# Ignore sensitive or private files
+*.env
+secrets.json
+
+# Ignore coverage and test results
+*.coverage
+*.testlog
+TestResults/
+
+# Ignore generated files
+*.generated.cs
+Generated/
+ServiceReferences/
+
+# Ignore SpecFlow feature-generated files
+*.feature.cs
