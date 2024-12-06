@@ -62,14 +62,6 @@ public static class MqHelper
                 break;
     
             case "binary" when content is byte[] binaryContent:
-                // case "binary" when content is string filePath:
-                //     // Read the file as a byte array
-                //     var fileBytes = File.ReadAllBytes(filePath);
-                //     
-                //     // Create and send a bytes message
-                //     var bytesMessage = session.CreateBytesMessage();
-                //     bytesMessage.WriteBytes(fileBytes);
-                
                 // Create and send a bytes message
                 var bytesMessage = session.CreateBytesMessage();
                 bytesMessage.WriteBytes(binaryContent);
@@ -114,6 +106,7 @@ public static class MqHelper
         
         // Setting up queue
         var destination = session.CreateQueue(queueName);
+        connection.Start();
         IMessage receivedMessage;
         
         // Check if selector type and value is present and valid, if yes use it to create a filtering consumer
@@ -142,12 +135,8 @@ public static class MqHelper
             using var consumer = session.CreateConsumer(destination);
             receivedMessage = consumer.Receive();
         }
-
-        connection.Start();
-
-        // Receive the message, use switch for dynamic binary/text message types handling
         
-
+        // Receive the message, use switch for dynamic binary/text message types handling
         return receivedMessage switch
         {
             IBytesMessage bytesMessage => bytesMessage,
