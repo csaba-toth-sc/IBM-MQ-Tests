@@ -40,8 +40,9 @@ public class BasicFeatureSteps
                 break;
 
             case "binary":
-                var fileName = row["msgContent"];
-                var binaryContent = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, fileName));
+                // var fileName = row["msgContent"];
+                var msgContent = row["msgContent"];
+                var binaryContent = Convert.FromBase64String(msgContent);
                 _mqContext.MsgContentBinary = binaryContent;
                 break;
         }
@@ -65,6 +66,100 @@ public class BasicFeatureSteps
 
         // Validate the received message content based on the type of it
         switch (_mqContext.MsgType)
+        {
+            case "text" when receivedMessage is ITextMessage textMessage:
+                _mqContext.MsgContentText.Should().Be(textMessage.Text, "Message content does not match.");
+                break;
+
+            case "binary" when receivedMessage is IBytesMessage bytesMessage:
+            {
+                var receivedBytes = new byte[bytesMessage.BodyLength];
+                bytesMessage.ReadBytes(receivedBytes);
+                _mqContext.MsgContentBinary.Should().Equal(receivedBytes);
+                break;
+            }
+        }
+
+        // Validate correlation ID
+        if (_mqContext.MsgCorrelationId.HasValue)
+        {
+            switch (_mqContext.MsgType)
+            {
+                case "text" when receivedMessage is ITextMessage textMessage:
+                    _mqContext.MsgCorrelationId.Should().Be(
+                        textMessage.JMSCorrelationID, "Message correlation ID does not match."
+                    );
+                    break;
+
+                case "binary" when receivedMessage is IBytesMessage bytesMessage:
+                    _mqContext.MsgCorrelationId.Should().Be(
+                        bytesMessage.JMSCorrelationID, "Message correlation ID does not match."
+                    );
+                    break;
+            }
+        }
+
+        // Validate priority
+        if (_mqContext.MsgPriority.HasValue)
+        {
+            switch (_mqContext.MsgType)
+            {
+                case "text" when receivedMessage is ITextMessage textMessage:
+                    _mqContext.MsgPriority.Should().Be(
+                        textMessage.JMSPriority, "Message priority does not match."
+                    );
+                    break;
+
+                case "binary" when receivedMessage is IBytesMessage bytesMessage:
+                    _mqContext.MsgPriority.Should().Be(
+                        bytesMessage.JMSPriority, "Message priority does not match."
+                    );
+                    break;
+            }
+        }
+        
+        // Validate string properties
+        if (_mqContext is { MsgStringPropertyType: not null, MsgStringPropertyValue: not null })
+        {
+            switch (_mqContext.MsgType)
+            {
+                case "text" when receivedMessage is ITextMessage textMessage:
+                    var actualTextStringPropertyValue =
+                        textMessage.GetStringProperty(_mqContext.MsgStringPropertyType);
+                    _mqContext.MsgStringPropertyValue.Should().Be(
+                        actualTextStringPropertyValue, "Message priority does not match."
+                    );
+                    break;
+
+                case "binary" when receivedMessage is IBytesMessage bytesMessage:
+                    var actualBytesStringPropertyValue =
+                        bytesMessage.GetStringProperty(_mqContext.MsgStringPropertyType);
+                    _mqContext.MsgStringPropertyValue.Should().Be(
+                        actualBytesStringPropertyValue, "Message priority does not match."
+                    );
+                    break;
+            }
+        }
+    }
+
+    [Then(@"I should receive the following message")]
+    public void ThenIShouldReceiveTheFollowingMessage(Table table)
+    {
+        // Extract test data from Feature file
+        var row = table.Rows[0].ToDictionary(r => r.Key, r => r.Value);
+        
+        // Store them in context file
+        var queueName = row["queueName"];
+        var msgType = row["msgType"];
+        int? msgPriority = row["msgPriority"] != "" ? Convert.ToInt32(row["msgPriority"]) : null;
+        Guid? msgCorrelationId = Guid.TryParse(row["msgCorrelationId"], out var parsedMsgCorrelationId) ? parsedMsgCorrelationId : null;
+        var msgStringPropertyType = row["msgStringPropertyType"] != "" ? row["msgStringPropertyType"] : null;
+        var msgStringPropertyValue = row["msgStringPropertyValue"] != "" ? row["msgStringPropertyValue"] : null;
+        
+        var receivedMessage = MqHelper.ReceiveMessage(_mqContext.QueueName, null, null);
+
+        // Validate the received message content based on the type of it
+        switch (msgType)
         {
             case "text" when receivedMessage is ITextMessage textMessage:
                 _mqContext.MsgContentText.Should().Be(textMessage.Text, "Message content does not match.");
