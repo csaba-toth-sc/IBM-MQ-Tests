@@ -7,15 +7,8 @@ using TechTalk.SpecFlow;
 namespace mqTests2.Bindings;
 
 [Binding]
-public class BasicFeatureSteps
+public class BasicFeatureSteps(MqContext mqContext)
 {
-    private readonly MqContext _mqContext;
-
-    public BasicFeatureSteps(MqContext mqContext)
-    {
-        _mqContext = mqContext;
-    }
-
     [Given(@"I send message with the following details")]
     [When(@"I send message with the following details")]
     public void WhenISendMessageWithTheFollowingDetails(Table table)
@@ -24,42 +17,45 @@ public class BasicFeatureSteps
         var row = table.Rows[0].ToDictionary(r => r.Key, r => r.Value);
 
         // Store them in context file
-        _mqContext.QueueName = row["queueName"];
-        _mqContext.MsgType = row["msgType"];
-        _mqContext.MsgPriority = row["msgPriority"] != "" ? Convert.ToInt32(row["msgPriority"]) : null;
-        _mqContext.MsgCorrelationId =
+        mqContext.QueueName = row["queueName"];
+        mqContext.MsgType = row["msgType"];
+        mqContext.MsgPriority = row["msgPriority"] != "" ? Convert.ToInt32(row["msgPriority"]) : null;
+        mqContext.MsgCorrelationId =
             Guid.TryParse(row["msgCorrelationId"], out var msgCorrelationId) ? msgCorrelationId : null;
-        _mqContext.MsgStringPropertyType = row["msgStringPropertyType"] != "" ? row["msgStringPropertyType"] : null;
-        _mqContext.MsgStringPropertyValue = row["msgStringPropertyValue"] != "" ? row["msgStringPropertyValue"] : null;
+        mqContext.MsgStringPropertyType = row["msgStringPropertyType"] != "" ? row["msgStringPropertyType"] : null;
+        mqContext.MsgStringPropertyValue = row["msgStringPropertyValue"] != "" ? row["msgStringPropertyValue"] : null;
 
         // Store message content in context based on its type
         switch (row["msgType"])
         {
             case "text":
-                _mqContext.MsgContentText = row["msgContent"];
+                mqContext.MsgContentText = row["msgContent"];
                 break;
 
             case "binary":
                 // var fileName = row["msgContent"];
                 var msgContent = row["msgContent"];
                 var binaryContent = Convert.FromBase64String(msgContent);
-                _mqContext.MsgContentBinary = binaryContent;
+                mqContext.MsgContentBinary = binaryContent;
                 break;
+            
+            default:
+                throw new ArgumentException("Unknown message type");
         }
 
         MqHelper.SendMessage(
-            _mqContext.QueueName,
-            _mqContext.MsgType,
-            content: _mqContext.MsgType == "text" ? _mqContext.MsgContentText : _mqContext.MsgContentBinary,
-            priority: _mqContext.MsgPriority,
-            correlationId: _mqContext.MsgCorrelationId,
-            stringPropertyType: _mqContext.MsgStringPropertyType,
-            stringPropertyValue: _mqContext.MsgStringPropertyValue
+            mqContext.QueueName,
+            mqContext.MsgType,
+            content: mqContext.MsgType == "text" ? mqContext.MsgContentText : mqContext.MsgContentBinary,
+            priority: mqContext.MsgPriority,
+            correlationId: mqContext.MsgCorrelationId,
+            stringPropertyType: mqContext.MsgStringPropertyType,
+            stringPropertyValue: mqContext.MsgStringPropertyValue
         );
     }
 
     [Then(@"I should receive the following message")]
-    public void ThenIShouldReceiveTheFollowingMessage(Table table)
+    public static void ThenIShouldReceiveTheFollowingMessage(Table table)
     {
         // Extract test data from Feature file
         var row = table.Rows[0].ToDictionary(r => r.Key, r => r.Value);
