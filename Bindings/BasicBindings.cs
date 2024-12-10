@@ -33,8 +33,7 @@ public class BasicFeatureSteps(MqContext mqContext)
                 break;
 
             case "binary":
-                // var fileName = row["msgContent"];
-                var msgContent = row["msgContent"];
+                var msgContent = TestConstants.TestDataDictionary[row["msgContent"]];
                 var binaryContent = Convert.FromBase64String(msgContent);
                 mqContext.MsgContentBinary = binaryContent;
                 break;
@@ -83,6 +82,7 @@ public class BasicFeatureSteps(MqContext mqContext)
                 var receivedBytes = new byte[bytesMessage.BodyLength];
                 bytesMessage.ReadBytes(receivedBytes);
                 var receivedBytesInBase64 = Convert.ToBase64String(receivedBytes);
+                msgContent = TestConstants.TestDataDictionary[msgContent];
                 receivedBytesInBase64.Should().Be(msgContent, "Message content does not match.");
                 break;
             }
